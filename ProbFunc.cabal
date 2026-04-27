@@ -75,10 +75,11 @@ library
     -- Base language which the package is written in.
     default-language: Haskell2010
 
-library ProbFunc-examples
+executable BlackJack
     import:           warnings
     default-language: Haskell2010
-    hs-source-dirs:   examples
+    hs-source-dirs:   examples/blackjack
+    main-is:          Main.hs
     other-modules:    BlackJack
     build-depends:
         base ^>=4.20.2.0,
