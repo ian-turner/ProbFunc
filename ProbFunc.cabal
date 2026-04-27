@@ -58,7 +58,9 @@ library
     import:           warnings
 
     -- Modules exported by the library.
-    exposed-modules:  ProbFunc
+    exposed-modules:
+        ProbFunc,
+        DistMonad
 
     -- Modules included in this library but not exported.
     -- other-modules:
