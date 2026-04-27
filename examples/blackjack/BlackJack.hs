@@ -79,8 +79,8 @@ initGame = do
   return gs
 
 runPlayer :: GameState -> Strategy -> Dist GameState
-runPlayer gs strat = let act = strat gs in do
-  if (act == Stay) then
+runPlayer gs strat = let (act, plCnt) = (strat gs, playerCount gs) in do
+  if (plCnt >= 21 || act == Stay) then
     return gs
   else
     (playerHit gs) >>= (\gs' -> runPlayer gs' strat)
@@ -96,7 +96,7 @@ runDealer gs =
 
 runStrategy :: GameState -> Strategy -> Dist Outcome
 runStrategy gs strat = do
-  gs' <- runPlayer gs strat
+  gs'  <- runPlayer gs strat
   gs'' <- runDealer gs'
   let pc = playerCount gs''
   let dc = dealerCount gs''
