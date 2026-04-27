@@ -1,8 +1,6 @@
 {-# LANGUAGE InstanceSigs #-}
 module DistMonad where
 
-import qualified Data.Map as Map
-
 
 -- | Probability monad definition
 type Probability = Float

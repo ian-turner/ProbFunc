@@ -3,15 +3,15 @@ module BlackJack where
 import DistMonad
 
 
-data Card = Ace | Two | Three | Four | Five       -- | Defining cards
+data Card = Ace | Two | Three | Four | Five           -- | Defining cards
           | Six | Seven | Eight | Nine | Ten
           | Jack | Queen | King
           deriving (Show, Eq)                     
-data Hand = H Int Bool deriving (Show, Eq)        -- | Hand of player: count, hard/soft flag (ace or not)
-data Action = Hit | Stay deriving (Show, Eq)      -- | Hit (draw another card) or stay (no more cards)
-data Outcome = Win | Lose deriving (Show, Eq)     -- | Outcome of hand - either win or lose
-data GameState = G Hand Hand deriving (Show, Eq)  -- | Game state object: holds player hand and dealer hand
-type Strategy = (Hand -> Card -> Action)          -- | Choice of action based on player hand and dealer card
+data Hand = H Int Bool deriving (Show, Eq)            -- | Hand of player: count, hard/soft flag (ace or not)
+data Action = Hit | Stay deriving (Show, Eq)          -- | Hit (draw another card) or stay (no more cards)
+data Outcome = Win | Lose | Push deriving (Show, Eq)  -- | Outcome of hand - either win or lose
+data GameState = G Hand Hand deriving (Show, Eq)      -- | Game state object: holds player hand and dealer hand
+type Strategy = (GameState -> Action)                 -- | Choice of action based on player hand and dealer card
 
 
 -- | Functions for game actions - drawing cards, hit/stay, etc.
@@ -37,6 +37,12 @@ emptyHand = (H 0 False)
 
 emptyGame :: GameState
 emptyGame = G emptyHand emptyHand
+
+playerCount :: GameState -> Int
+playerCount (G (H c _) _) = c
+
+dealerCount :: GameState -> Int
+dealerCount (G _ (H c _)) = c
 
 addToHand :: Card -> Hand -> Hand
 addToHand Ace (H c s) =
@@ -72,5 +78,38 @@ initGame = do
   gs     <- dealerHit gs
   return gs
 
-playerCount :: GameState -> Int
-playerCount (G (H c _) _) = c
+runPlayer :: GameState -> Strategy -> Dist GameState
+runPlayer gs strat = let act = strat gs in do
+  if (act == Stay) then
+    return gs
+  else
+    (playerHit gs) >>= (\gs' -> runPlayer gs' strat)
+
+runDealer :: GameState -> Dist GameState
+runDealer gs =
+  let dc = dealerCount gs in
+  if (dc < 17) then do
+    gs' <- dealerHit gs
+    runDealer gs'
+  else
+    return gs
+
+runStrategy :: GameState -> Strategy -> Dist Outcome
+runStrategy gs strat = do
+  gs' <- runPlayer gs strat
+  gs'' <- runDealer gs'
+  let pc = playerCount gs''
+  let dc = dealerCount gs''
+  if (pc > 21 || (dc <= 21 && dc > pc)) then
+    return Lose
+  else if (dc > 21 || pc > dc) then
+    return Win
+  else
+    return Push
+
+expVal :: Dist Outcome -> Float
+expVal (D d) = sum [p * (val x) | (x,p) <- d]
+  where
+    val Win = 1.0
+    val Push = 0.5
+    val Lose = 0.0
